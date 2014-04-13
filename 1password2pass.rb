@@ -57,7 +57,7 @@ filename = ARGV.pop
 unless filename
   abort optparse.to_s
 end
-unless accepted_formats.include? File.extname filename
+unless accepted_formats.include?(File.extname(filename.downcase))
   abort "Supported file types: comma/tab delimited .txt files and .1pif files."
 end
 
