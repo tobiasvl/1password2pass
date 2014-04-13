@@ -23,17 +23,26 @@ accepted_formats = [".txt", ".1pif"]
 options = OpenStruct.new
 options.force = false
 options.name = :title
-options.group = "1password" # XXX
 options.notes = true
 options.meta = true
 
 optparse = OptionParser.new do |opts|
   opts.banner = "Usage: #{opts.program_name}.rb [options] filename"
-  opts.on("-f", "--force", "Overwrite existing passwords") { options.force = true }
-  opts.on("-d", "--default [FOLDER]", "Place passwords into FOLDER") { |group| options.group = group }
-  opts.on("-n", "--name [PASS-NAME]", [:title, :url], "Select field to use as pass-name: title (default) or URL") { |name| options.name = name }
-  opts.on("-m", "--[no-]meta", "Import metadata and insert it below the password") { |meta| options.meta = meta }
   opts.on_tail("-h", "--help", "Display this screen") { puts opts; exit }
+  opts.on("-f", "--force", "Overwrite existing passwords") do
+    options.force = true
+  end
+  opts.on("-d", "--default [FOLDER]", "Place passwords into FOLDER") do |group|
+    options.group = group
+  end
+  opts.on("-n", "--name [PASS-NAME]", [:title, :url],
+          "Select field to use as pass-name: title (default) or URL") do |name|
+    options.name = name
+  end
+  opts.on("-m", "--[no-]meta",
+          "Import metadata and insert it below the password") do |meta|
+    options.meta = meta
+  end
 
   begin 
     opts.parse!
@@ -43,13 +52,13 @@ optparse = OptionParser.new do |opts|
   end
 end
 
-# Check for a filename
+# Check for a valid filename
 filename = ARGV.pop
 unless filename
   abort optparse.to_s
 end
 unless accepted_formats.include? File.extname filename
-  abort "Supported file types are comma and tab delimited .txt files, and .1pif files."
+  abort "Supported file types: comma/tab delimited .txt files and .1pif files."
 end
 
 passwords = []
@@ -67,12 +76,12 @@ if File.extname(filename) =~ /.txt/i
     elsif first_line =~ /\t/
       delimiter = "\t"
     else
-      abort "Supported file types are comma and tab delimited .txt files, and .1pif files."
+      abort "Supported file types: comma/tab delimited .txt files and .1pif files."
     end
   end
 
   # Import CSV/TSV
-  CSV.foreach(filename, {:col_sep => delimiter, :headers => true, :header_converters => :symbol}) do |entry|
+  CSV.foreach(filename, {col_sep: delimiter, headers: true, header_converters: :symbol}) do |entry|
     pass = {}
     pass[:name] = "#{(options.group + "/") if options.group}#{entry[options.name]}"
     pass[:title] = entry[:title]
@@ -89,7 +98,7 @@ elsif File.extname(filename) =~ /.1pif/i
   # 1PIF is almost JSON, but not quite
   pif = "[#{File.open(filename).read}]"
   pif.gsub!(/^\*\*\*.*\*\*\*$/, ",")
-  pif = JSON.parse(pif, {:symbolize_names => true})
+  pif = JSON.parse(pif, {symbolize_names: true})
 
   options.name = :location if options.name == :url
 
@@ -99,8 +108,12 @@ elsif File.extname(filename) =~ /.1pif/i
     pass = {}
     pass[:name] = "#{(options.group + "/") if options.group}#{entry[options.name]}"
     pass[:title] = entry[:title]
-    pass[:password] = entry[:secureContents][:fields].each { |field| break field[:value] if field[:name] == "password" }
-    pass[:login] = entry[:secureContents][:fields].each { |field| break field[:value] if field[:name] == "username" }
+    pass[:password] = entry[:secureContents][:fields].detect do |field|
+      field[:name] == "password"
+    end[:value]
+    pass[:login] = entry[:secureContents][:fields].detect do |field|
+      field[:name] == "username"
+    end[:value]
     pass[:url] = entry[:location]
     pass[:notes] = entry[:secureContents][:notesPlain]
     passwords << pass
@@ -129,9 +142,8 @@ passwords.each do |pass|
 end
 
 if errors.length > 0
-  $stderr.print "Failed to import "
-  $stderr.puts errors.map {|e| e[:name]}.join ", "
-  $stderr.puts "Check the errors. Make sure these passwords do not already exist. If "\
-       "you're sure you want to overwrite them with the new import, try "\
-       "again with --force."
+  $stderr.puts "Failed to import #{errors.map {|e| e[:name]}.join ", "}"
+  $stderr.puts "Check the errors. Make sure these passwords do not already "\
+               "exist. If you're sure you want to overwrite them with the "\
+               "new import, try again with --force."
 end
