@@ -1,7 +1,8 @@
 #!/usr/bin/env ruby
 
 # Copyright (C) 2014 Tobias V. Langhoff <tobias@langhoff.no>. All Rights Reserved.
-# This file is licensed under GPLv2+. Please see COPYING for more information.
+# This file is licensed under GPLv2+. Please see the following file for more
+# information: http://git.zx2c4.com/password-store/tree/COPYING
 # 
 # 1Password Importer
 # 
