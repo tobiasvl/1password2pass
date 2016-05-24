@@ -96,8 +96,10 @@ if File.extname(filename) =~ /.txt/i
 elsif File.extname(filename) =~ /.1pif/i
   require "json"
 
-  # 1PIF is almost JSON, but not quite
   pif = "[#{File.open(filename).read}]"
+  # Normalize line endings, explicitly preserving encoding just to be sure
+  pif.encode!(pif.encoding, universal_newline: true)
+  # 1PIF is almost JSON, but not quite:
   pif.gsub!(/^\*\*\*.*\*\*\*$/, ",")
   pif = JSON.parse(pif, {symbolize_names: true})
 
