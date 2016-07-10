@@ -107,12 +107,22 @@ elsif File.extname(filename) =~ /.1pif/i
     pass = {}
     pass[:name] = "#{(options.group + "/") if options.group}#{entry[options.name]}"
     pass[:title] = entry[:title]
-    pass[:password] = entry[:secureContents][:fields].detect do |field|
-      field[:name] == "password" or field[:designation] == "password"
-    end[:value]
-    pass[:login] = entry[:secureContents][:fields].detect do |field|
-      field[:name] == "username" or field[:designation] == "username"
-    end[:value]
+    begin
+      pass[:password] = entry[:secureContents][:fields].detect do |field|
+        field[:name] == "password" or field[:designation] == "password"
+      end[:value]
+    rescue
+      puts "WARNING: No password found in entry " + entry[:title]
+      pass[:password] = {}
+    end
+    begin
+      pass[:login] = entry[:secureContents][:fields].detect do |field|
+        field[:name] == "username" or field[:designation] == "username"
+      end[:value]
+    rescue
+      puts "WARNING: No username found in entry " + entry[:title]
+      pass[:login] = {}
+    end
     pass[:url] = entry[:location]
     pass[:notes] = entry[:secureContents][:notesPlain]
     passwords << pass
