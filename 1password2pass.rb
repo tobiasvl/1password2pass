@@ -20,12 +20,26 @@ require "ostruct"
 
 accepted_formats = [".txt", ".1pif"]
 
+def filter_name(name, pattern, replacement)
+  if replacement == false
+    return name
+  end
+  name_filtered = name.gsub(pattern, replacement)
+  if name_filtered != name
+    puts "WARNING: Changed entry name from '" + name + "' to '" + name_filtered + "'"
+    name = name_filtered
+  end
+  name
+end
+
 # Default options
 options = OpenStruct.new
 options.force = false
 options.name = :title
 options.notes = true
 options.meta = true
+options.name_filter_pattern = /[\/\\]/
+options.name_filter_replacement = "_"
 
 optparse = OptionParser.new do |opts|
   opts.banner = "Usage: #{opts.program_name}.rb [options] filename"
@@ -43,6 +57,10 @@ optparse = OptionParser.new do |opts|
   opts.on("-m", "--[no-]meta",
           "Import metadata and insert it below the password") do |meta|
     options.meta = meta
+  end
+  opts.on("-z", "--[no-]name-filter-replacement REPLACEMENT",
+          "Replaces critical symbols (\\,/,...) with REPLACEMENT. Default replacement is a single underscore (_).") do |sym|
+    options.name_filter_replacement = sym
   end
 
   begin 
@@ -84,7 +102,7 @@ if File.extname(filename) =~ /.txt/i
   # Import CSV/TSV
   CSV.foreach(filename, {col_sep: delimiter, headers: true, header_converters: :symbol}) do |entry|
     pass = {}
-    pass[:name] = "#{(options.group + "/") if options.group}#{entry[options.name]}"
+    pass[:name] = "#{(options.group + "/") if options.group}#{filter_name(entry[options.name], options.name_filter_pattern, options.name_filter_replacement)}"
     pass[:title] = entry[:title]
     pass[:password] = entry[:password]
     pass[:login] = entry[:username]
@@ -105,7 +123,7 @@ elsif File.extname(filename) =~ /.1pif/i
     # Import 1PIF
     next unless entry[:typeName] == "webforms.WebForm"
     pass = {}
-    pass[:name] = "#{(options.group + "/") if options.group}#{entry[options.name]}"
+    pass[:name] = "#{(options.group + "/") if options.group}#{filter_name(entry[options.name], options.name_filter_pattern, options.name_filter_replacement)}"
     pass[:title] = entry[:title]
     begin
       pass[:password] = entry[:secureContents][:fields].detect do |field|
