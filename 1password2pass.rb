@@ -5,11 +5,11 @@
 # information: http://git.zx2c4.com/password-store/tree/COPYING
 # 
 # 1Password Importer
-# 
+#
 # Reads files exported from 1Password and imports them into pass. Supports comma
 # and tab delimited text files, as well as logins (but not other items) stored
 # in the 1Password Interchange File (1PIF) format.
-# 
+#
 # Supports using the title (default) or URL as pass-name, depending on your
 # preferred organization. Also supports importing metadata, adding them with
 # `pass insert --multiline`; the username and URL are compatible with
@@ -63,7 +63,7 @@ optparse = OptionParser.new do |opts|
     options.name_filter_replacement = sym
   end
 
-  begin 
+  begin
     opts.parse!
   rescue OptionParser::InvalidOption
     $stderr.puts optparse
@@ -122,8 +122,12 @@ elsif File.extname(filename) =~ /.1pif/i
 
     # Import 1PIF
     next unless entry[:typeName] == "webforms.WebForm"
+    next if entry[:secureContents][:fields].nil?
+
     pass = {}
+
     pass[:name] = "#{(options.group + "/") if options.group}#{filter_name(entry[options.name], options.name_filter_pattern, options.name_filter_replacement)}"
+
     pass[:title] = entry[:title]
     begin
       pass[:password] = entry[:secureContents][:fields].detect do |field|
@@ -152,7 +156,7 @@ puts "Read #{passwords.length} passwords."
 errors = []
 # Save the passwords
 passwords.each do |pass|
-  IO.popen("pass insert #{"-f " if options.force}-m '#{pass[:name]}' > /dev/null", "w") do |io|
+  IO.popen("pass insert #{"-f " if options.force}-m \"#{pass[:name]}\" > /dev/null", "w") do |io|
     io.puts pass[:password]
     if options.meta
       io.puts "login: #{pass[:login]}" unless pass[:login].to_s.empty?
